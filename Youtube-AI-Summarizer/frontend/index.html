@@ -1,0 +1,1035 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>YT Summary</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&family=YouTube+Sans:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #0f0f0f;
+    --surface: #1f1f1f;
+    --surface2: #272727;
+    --border: #3f3f3f;
+    --text: #f1f1f1;
+    --text-muted: #aaaaaa;
+    --text-dim: #717171;
+    --red: #ff0000;
+    --red-hover: #cc0000;
+    --chip-bg: #272727;
+    --chip-hover: #3f3f3f;
+    --highlight: #ffeb3b;
+    --highlight-text: #0f0f0f;
+  }
+
+  body {
+    font-family: 'Roboto', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* ── Header ── */
+  .yt-header {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 12px 24px;
+    background: var(--bg);
+    border-bottom: 1px solid var(--border);
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+  .yt-logo {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    text-decoration: none;
+  }
+  .yt-logo svg { width: 90px; height: 20px; }
+  .yt-logo-badge {
+    font-size: 10px;
+    color: var(--text-dim);
+    font-weight: 500;
+    letter-spacing: 0.05em;
+    padding: 2px 6px;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    margin-left: 4px;
+  }
+  .header-spacer { flex: 1; }
+  .header-note {
+    font-size: 12px;
+    color: var(--text-dim);
+  }
+
+  /* ── Main layout ── */
+  .main {
+    display: flex;
+    max-width: 1280px;
+    margin: 0 auto;
+    padding: 24px 24px;
+    gap: 24px;
+    width: 100%;
+    flex: 1;
+  }
+
+  /* ── Left: input + video preview ── */
+  .left-col {
+    flex: 0 0 480px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  .input-section {
+    background: var(--surface);
+    border-radius: 12px;
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+  .input-label {
+    font-size: 13px;
+    color: var(--text-muted);
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+  }
+
+  .url-row {
+    display: flex;
+    gap: 8px;
+  }
+  .url-input {
+    flex: 1;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 10px 14px;
+    color: var(--text);
+    font-family: 'Roboto', sans-serif;
+    font-size: 14px;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+  .url-input:focus { border-color: #3ea6ff; }
+  .url-input::placeholder { color: var(--text-dim); }
+
+  .summarize-btn {
+    background: var(--red);
+    color: white;
+    border: none;
+    border-radius: 8px;
+    padding: 10px 18px;
+    font-family: 'Roboto', sans-serif;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background 0.15s;
+    white-space: nowrap;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .summarize-btn:hover:not(:disabled) { background: var(--red-hover); }
+  .summarize-btn:disabled { background: #555; cursor: not-allowed; }
+
+  /* Options row */
+  .options-row {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+  .option-chip {
+    background: var(--chip-bg);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 5px 14px;
+    font-size: 13px;
+    color: var(--text-muted);
+    cursor: pointer;
+    transition: all 0.15s;
+    user-select: none;
+  }
+  .option-chip:hover { background: var(--chip-hover); color: var(--text); }
+  .option-chip.active {
+    background: var(--text);
+    color: var(--bg);
+    border-color: var(--text);
+    font-weight: 500;
+  }
+
+  /* Video preview card */
+  .video-card {
+    background: var(--surface);
+    border-radius: 12px;
+    overflow: hidden;
+    display: none;
+  }
+  .video-card.visible { display: block; }
+  .video-thumb-wrap {
+    position: relative;
+    aspect-ratio: 16/9;
+    background: #000;
+    overflow: hidden;
+  }
+  .video-thumb-wrap img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+  .video-thumb-placeholder {
+    width: 100%;
+    height: 100%;
+    background: var(--surface2);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .video-thumb-placeholder svg { opacity: 0.3; }
+  .video-info-bar {
+    padding: 14px 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+  .video-title {
+    font-size: 15px;
+    font-weight: 500;
+    color: var(--text);
+    line-height: 1.35;
+  }
+  .video-meta { font-size: 13px; color: var(--text-dim); }
+
+  /* ── Right: Summary panel ── */
+  .right-col {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+  }
+
+  /* Empty state */
+  .empty-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    flex: 1;
+    gap: 16px;
+    padding: 60px 20px;
+    text-align: center;
+    color: var(--text-dim);
+  }
+  .empty-state svg { opacity: 0.25; }
+  .empty-state h3 { font-size: 18px; font-weight: 400; color: var(--text-muted); }
+  .empty-state p { font-size: 14px; max-width: 320px; line-height: 1.5; }
+
+  /* Loading state */
+  .loading-state {
+    display: none;
+    flex-direction: column;
+    gap: 20px;
+    padding: 24px 0;
+  }
+  .loading-state.visible { display: flex; }
+
+  .loading-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding-bottom: 16px;
+    border-bottom: 1px solid var(--border);
+  }
+  .spinner {
+    width: 20px; height: 20px;
+    border: 2px solid var(--border);
+    border-top-color: var(--red);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+    flex-shrink: 0;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .loading-label { font-size: 14px; color: var(--text-muted); }
+
+  .skeleton-block {
+    height: 14px;
+    background: linear-gradient(90deg, var(--surface) 25%, var(--surface2) 50%, var(--surface) 75%);
+    background-size: 200% 100%;
+    animation: shimmer 1.4s infinite;
+    border-radius: 6px;
+  }
+  @keyframes shimmer { to { background-position: -200% 0; } }
+  .skeleton-block.w60 { width: 60%; }
+  .skeleton-block.w80 { width: 80%; }
+  .skeleton-block.w90 { width: 90%; }
+  .skeleton-block.w100 { width: 100%; }
+  .skeleton-block.h20 { height: 20px; }
+  .skeleton-section { display: flex; flex-direction: column; gap: 10px; }
+
+  /* ── Summary panel ── */
+  .summary-panel {
+    display: none;
+    flex-direction: column;
+    gap: 0;
+    animation: fadeUp 0.4s ease;
+  }
+  .summary-panel.visible { display: flex; }
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(12px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  /* Panel header */
+  .panel-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding-bottom: 16px;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 20px;
+  }
+  .panel-title-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .panel-title {
+    font-size: 16px;
+    font-weight: 500;
+  }
+  .panel-badge {
+    font-size: 11px;
+    background: rgba(255,0,0,0.15);
+    color: #ff6b6b;
+    padding: 2px 8px;
+    border-radius: 10px;
+    font-weight: 500;
+    letter-spacing: 0.04em;
+  }
+  .panel-actions {
+    display: flex;
+    gap: 8px;
+  }
+  .icon-btn {
+    background: none;
+    border: 1px solid var(--border);
+    color: var(--text-muted);
+    border-radius: 6px;
+    padding: 6px 12px;
+    font-size: 12px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    transition: all 0.15s;
+    font-family: 'Roboto', sans-serif;
+  }
+  .icon-btn:hover { background: var(--surface2); color: var(--text); border-color: #666; }
+
+  /* TLDR section */
+  .tldr-section {
+    background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+    border: 1px solid #2a3a5c;
+    border-radius: 12px;
+    padding: 20px;
+    margin-bottom: 24px;
+    position: relative;
+    overflow: hidden;
+  }
+  .tldr-section::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 3px;
+    background: linear-gradient(90deg, #ff0000, #ff6b35, #ffcc00);
+  }
+  .tldr-label {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: #7db3ff;
+    margin-bottom: 10px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .tldr-text {
+    font-size: 15px;
+    line-height: 1.65;
+    color: #d4e4ff;
+    font-weight: 400;
+  }
+
+  /* Key moments section */
+  .section-heading {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    margin-bottom: 14px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .section-heading::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--border);
+  }
+
+  /* Highlighted points — YouTube style */
+  .highlights-list {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    margin-bottom: 28px;
+  }
+  .highlight-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 12px 14px;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: background 0.15s;
+    position: relative;
+  }
+  .highlight-item:hover { background: var(--surface2); }
+  .highlight-item.active { background: var(--surface2); }
+  .highlight-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--red);
+    flex-shrink: 0;
+    margin-top: 6px;
+  }
+  .highlight-num {
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--text-dim);
+    flex-shrink: 0;
+    min-width: 18px;
+    margin-top: 2px;
+  }
+  .highlight-content { flex: 1; }
+  .highlight-title {
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--text);
+    line-height: 1.4;
+    margin-bottom: 4px;
+  }
+  .highlight-detail {
+    font-size: 13px;
+    color: var(--text-muted);
+    line-height: 1.5;
+    display: none;
+  }
+  .highlight-item.expanded .highlight-detail { display: block; }
+  .highlight-expand {
+    color: var(--text-dim);
+    font-size: 16px;
+    flex-shrink: 0;
+    transition: transform 0.2s;
+    margin-top: 1px;
+  }
+  .highlight-item.expanded .highlight-expand { transform: rotate(180deg); }
+
+  /* Article section */
+  .article-section { margin-bottom: 28px; }
+  .article-text {
+    font-size: 14px;
+    line-height: 1.75;
+    color: var(--text-muted);
+  }
+  .article-text p { margin-bottom: 14px; }
+  .article-text h2 {
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--text);
+    margin: 20px 0 10px;
+  }
+  .article-text ul {
+    padding-left: 20px;
+    margin-bottom: 14px;
+  }
+  .article-text li { margin-bottom: 6px; }
+  .article-text strong { color: var(--text); }
+
+  /* Tags */
+  .tags-row {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-bottom: 24px;
+  }
+  .tag {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 4px 12px;
+    font-size: 12px;
+    color: var(--text-muted);
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .tag:hover { background: var(--chip-hover); color: var(--text); border-color: #555; }
+  .tag.topic { border-color: #2a3a5c; color: #7db3ff; background: rgba(61,130,247,0.08); }
+
+  /* Export bar */
+  .export-bar {
+    display: flex;
+    gap: 8px;
+    padding-top: 16px;
+    border-top: 1px solid var(--border);
+    flex-wrap: wrap;
+  }
+  .export-btn {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    color: var(--text-muted);
+    border-radius: 8px;
+    padding: 8px 16px;
+    font-size: 13px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    transition: all 0.15s;
+    font-family: 'Roboto', sans-serif;
+  }
+  .export-btn:hover { background: var(--chip-hover); color: var(--text); border-color: #555; }
+
+  /* Toast */
+  .toast {
+    position: fixed;
+    bottom: 24px;
+    left: 50%;
+    transform: translateX(-50%) translateY(80px);
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: 10px 20px;
+    border-radius: 8px;
+    font-size: 13px;
+    transition: transform 0.3s ease;
+    z-index: 999;
+    pointer-events: none;
+  }
+  .toast.show { transform: translateX(-50%) translateY(0); }
+
+  /* Scrollable right panel */
+  .right-col { overflow-y: auto; max-height: calc(100vh - 80px); }
+  .right-col::-webkit-scrollbar { width: 6px; }
+  .right-col::-webkit-scrollbar-track { background: transparent; }
+  .right-col::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+  @media (max-width: 900px) {
+    .main { flex-direction: column; }
+    .left-col { flex: none; }
+    .right-col { max-height: none; }
+  }
+</style>
+</head>
+<body>
+
+<!-- Header -->
+<header class="yt-header">
+  <a class="yt-logo" href="#">
+    <!-- YouTube logo SVG -->
+    <svg viewBox="0 0 90 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <path d="M35.5 3.5H38.5L40.5 9.5L42.5 3.5H45.5L42 12.5V17H39V12.5L35.5 3.5Z" fill="white"/>
+      <path d="M46 7.5C46 6 47.2 5 49.5 5C51.8 5 53 6 53 7.5V14.5C53 16 51.8 17 49.5 17C47.2 17 46 16 46 14.5V7.5ZM48.5 14.5C48.5 15 48.9 15.3 49.5 15.3C50.1 15.3 50.5 15 50.5 14.5V7.5C50.5 7 50.1 6.7 49.5 6.7C48.9 6.7 48.5 7 48.5 7.5V14.5Z" fill="white"/>
+      <path d="M55 5.2H57.5V14.5C57.5 15 57.8 15.3 58.3 15.3C58.8 15.3 59.2 15 59.5 14.4V5.2H62V17H59.5V15.8C58.9 16.7 58.1 17.2 57.1 17.2C55.9 17.2 55 16.4 55 15V5.2Z" fill="white"/>
+      <path d="M63.5 7.5H65.5V5.5L68 4.5V7.5H70V9.5H68V14.2C68 15 68.3 15.3 68.9 15.3H70V17H68.3C66.5 17 65.5 16 65.5 14.2V9.5H63.5V7.5Z" fill="white"/>
+      <path d="M71 7.5C71 6 72.2 5 74.5 5C76.8 5 78 6 78 7.5V12H73.5V14.5C73.5 15 73.9 15.3 74.5 15.3C75.1 15.3 75.5 15 75.5 14.5V13.5H78V14.5C78 16 76.8 17 74.5 17C72.2 17 71 16 71 14.5V7.5ZM73.5 10.5H75.5V7.5C75.5 7 75.1 6.7 74.5 6.7C73.9 6.7 73.5 7 73.5 7.5V10.5Z" fill="white"/>
+      <path d="M5.5 2.5H14.5C16.7 2.5 18.5 4.3 18.5 6.5V13.5C18.5 15.7 16.7 17.5 14.5 17.5H5.5C3.3 17.5 1.5 15.7 1.5 13.5V6.5C1.5 4.3 3.3 2.5 5.5 2.5Z" fill="#FF0000"/>
+      <path d="M8 6.5L14 10L8 13.5V6.5Z" fill="white"/>
+      <text x="80" y="15" font-size="9" fill="#aaa" font-family="Roboto">Summary</text>
+    </svg>
+  </a>
+  <div class="header-spacer"></div>
+  <span class="header-note">Powered by Claude AI</span>
+</header>
+
+<!-- Main -->
+<div class="main">
+
+  <!-- Left column -->
+  <div class="left-col">
+    <div class="input-section">
+      <div class="input-label">Paste a YouTube link</div>
+      <div class="url-row">
+        <input class="url-input" id="urlInput" type="text"
+          placeholder="https://youtube.com/watch?v=..." />
+        <button class="summarize-btn" id="summarizeBtn" onclick="startSummary()">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 14.5v-9l6 4.5-6 4.5z"/>
+          </svg>
+          Summarize
+        </button>
+      </div>
+      <div class="options-row" id="toneChips">
+        <div class="option-chip active" data-tone="balanced" onclick="selectChip(this)">Balanced</div>
+        <div class="option-chip" data-tone="detailed" onclick="selectChip(this)">Detailed</div>
+        <div class="option-chip" data-tone="casual" onclick="selectChip(this)">Casual</div>
+        <div class="option-chip" data-tone="academic" onclick="selectChip(this)">Academic</div>
+      </div>
+    </div>
+
+    <!-- Video card -->
+    <div class="video-card" id="videoCard">
+      <div class="video-thumb-wrap">
+        <img id="videoThumb" src="" alt="thumbnail" onerror="this.style.display='none'" />
+        <div class="video-thumb-placeholder" id="thumbPlaceholder" style="display:none">
+          <svg width="48" height="48" viewBox="0 0 24 24" fill="#666">
+            <path d="M21 3H3c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h18c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-9 8L8 16V8l4 3z"/>
+          </svg>
+        </div>
+      </div>
+      <div class="video-info-bar">
+        <div class="video-title" id="videoTitle">Loading video info...</div>
+        <div class="video-meta" id="videoMeta"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Right column: summary output -->
+  <div class="right-col" id="rightCol">
+
+    <!-- Empty state -->
+    <div class="empty-state" id="emptyState">
+      <svg width="64" height="64" viewBox="0 0 24 24" fill="#aaa">
+        <path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-5 14H7v-2h7v2zm3-4H7v-2h10v2zm0-4H7V7h10v2z"/>
+      </svg>
+      <h3>Paste a YouTube URL to get started</h3>
+      <p>Get AI-powered highlights, key moments, and a full structured article from any video.</p>
+    </div>
+
+    <!-- Loading state -->
+    <div class="loading-state" id="loadingState">
+      <div class="loading-header">
+        <div class="spinner"></div>
+        <span class="loading-label" id="loadingLabel">Fetching transcript...</span>
+      </div>
+      <div class="skeleton-section">
+        <div class="skeleton-block h20 w60"></div>
+        <div class="skeleton-block w100"></div>
+        <div class="skeleton-block w90"></div>
+        <div class="skeleton-block w80"></div>
+      </div>
+      <div class="skeleton-section" style="margin-top:16px">
+        <div class="skeleton-block h20 w40"></div>
+        <div class="skeleton-block w100"></div>
+        <div class="skeleton-block w90"></div>
+        <div class="skeleton-block w70"></div>
+        <div class="skeleton-block w100"></div>
+        <div class="skeleton-block w85"></div>
+      </div>
+    </div>
+
+    <!-- Summary panel -->
+    <div class="summary-panel" id="summaryPanel">
+
+      <div class="panel-header">
+        <div class="panel-title-row">
+          <span class="panel-title">Video Summary</span>
+          <span class="panel-badge">AI Generated</span>
+        </div>
+        <div class="panel-actions">
+          <button class="icon-btn" onclick="copyAll()">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"/></svg>
+            Copy all
+          </button>
+          <button class="icon-btn" onclick="startSummary()">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M17.65 6.35C16.2 4.9 14.21 4 12 4c-4.42 0-7.99 3.58-7.99 8s3.57 8 7.99 8c3.73 0 6.84-2.55 7.73-6h-2.08c-.82 2.33-3.04 4-5.65 4-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z"/></svg>
+            Regenerate
+          </button>
+        </div>
+      </div>
+
+      <!-- TLDR -->
+      <div class="tldr-section">
+        <div class="tldr-label">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="#7db3ff"><path d="M11.99 2C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zm4.24 16L12 15.45 7.77 18l1.12-4.81-3.73-3.23 4.92-.42L12 5l1.92 4.53 4.92.42-3.73 3.23L16.23 18z"/></svg>
+          TL;DR
+        </div>
+        <div class="tldr-text" id="tldrText"></div>
+      </div>
+
+      <!-- Key highlights -->
+      <div class="section-heading">Key Highlights</div>
+      <div class="highlights-list" id="highlightsList"></div>
+
+      <!-- Full article -->
+      <div class="article-section">
+        <div class="section-heading">Full Article</div>
+        <div class="article-text" id="articleText"></div>
+      </div>
+
+      <!-- Topics -->
+      <div class="section-heading">Topics</div>
+      <div class="tags-row" id="tagsRow"></div>
+
+      <!-- Export -->
+      <div class="export-bar">
+        <button class="export-btn" onclick="exportMarkdown()">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-5 14H7v-2h7v2zm3-4H7v-2h10v2zm0-4H7V7h10v2z"/></svg>
+          Markdown
+        </button>
+        <button class="export-btn" onclick="exportHTML()">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M9.4 16.6L4.8 12l4.6-4.6L8 6l-6 6 6 6 1.4-1.4zm5.2 0l4.6-4.6-4.6-4.6L16 6l6 6-6 6-1.4-1.4z"/></svg>
+          HTML
+        </button>
+        <button class="export-btn" onclick="copyAll()">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"/></svg>
+          Copy Text
+        </button>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- Toast -->
+<div class="toast" id="toast"></div>
+
+<script>
+// ── State ──────────────────────────────────────────────────────────────────────
+// 🔑 Replace with your Groq API key — get one FREE at console.groq.com
+const API_KEY = 'YOUR_GROQ_API_KEY_HERE';
+
+let selectedTone = 'balanced';
+let currentResult = null;
+
+// ── Chip selection ─────────────────────────────────────────────────────────────
+function selectChip(el) {
+  document.querySelectorAll('.option-chip').forEach(c => c.classList.remove('active'));
+  el.classList.add('active');
+  selectedTone = el.dataset.tone;
+}
+
+// ── Extract YouTube video ID ───────────────────────────────────────────────────
+function extractVideoId(url) {
+  url = url.trim();
+  // Plain 11-char ID
+  if (/^[a-zA-Z0-9_-]{11}$/.test(url)) return url;
+  try {
+    const u = new URL(url);
+    if (u.hostname === 'youtu.be') return u.pathname.slice(1).split('?')[0];
+    if (u.hostname.includes('youtube.com')) {
+      if (u.pathname === '/watch') return u.searchParams.get('v');
+      const m = u.pathname.match(/\/(embed|v|shorts)\/([a-zA-Z0-9_-]{11})/);
+      if (m) return m[2];
+    }
+  } catch {}
+  // Fallback regex
+  const m = url.match(/(?:v=|\/|youtu\.be\/)([a-zA-Z0-9_-]{11})/);
+  return m ? m[1] : null;
+}
+
+// ── Show video card ────────────────────────────────────────────────────────────
+function showVideoCard(videoId) {
+  const card = document.getElementById('videoCard');
+  const thumb = document.getElementById('videoThumb');
+  const placeholder = document.getElementById('thumbPlaceholder');
+  const title = document.getElementById('videoTitle');
+  const meta = document.getElementById('videoMeta');
+
+  thumb.src = `https://img.youtube.com/vi/${videoId}/mqdefault.jpg`;
+  thumb.style.display = 'block';
+  placeholder.style.display = 'none';
+  thumb.onerror = () => { thumb.style.display = 'none'; placeholder.style.display = 'flex'; };
+
+  title.textContent = 'Loading...';
+  meta.textContent = `youtube.com/watch?v=${videoId}`;
+  card.classList.add('visible');
+
+  // Try to get title via oEmbed (no API key needed)
+  fetch(`https://www.youtube.com/oembed?url=https://youtube.com/watch?v=${videoId}&format=json`)
+    .then(r => r.json())
+    .then(d => {
+      title.textContent = d.title || 'YouTube Video';
+      meta.textContent = d.author_name ? `by ${d.author_name}` : `youtube.com/watch?v=${videoId}`;
+    })
+    .catch(() => {
+      title.textContent = 'YouTube Video';
+    });
+}
+
+// ── setState ───────────────────────────────────────────────────────────────────
+function setState(state) {
+  document.getElementById('emptyState').style.display    = state === 'empty'   ? 'flex' : 'none';
+  document.getElementById('loadingState').classList.toggle('visible', state === 'loading');
+  document.getElementById('summaryPanel').classList.toggle('visible', state === 'result');
+}
+
+function setLoadingLabel(text) {
+  document.getElementById('loadingLabel').textContent = text;
+}
+
+// ── Main pipeline ──────────────────────────────────────────────────────────────
+async function startSummary() {
+  const url = document.getElementById('urlInput').value.trim();
+  if (!url) { showToast('Paste a YouTube URL first'); return; }
+
+  const videoId = extractVideoId(url);
+  if (!videoId) { showToast('Could not find a valid YouTube video ID'); return; }
+
+  document.getElementById('summarizeBtn').disabled = true;
+  setState('loading');
+  showVideoCard(videoId);
+
+  try {
+    // Step 1: fetch transcript via YouTube transcript API proxy
+    setLoadingLabel('Fetching transcript...');
+    const transcript = await fetchTranscript(videoId);
+
+    // Step 2: call Claude API to generate structured summary
+    setLoadingLabel('Generating summary with AI...');
+    const result = await generateSummary(transcript, selectedTone);
+
+    currentResult = result;
+    renderResult(result);
+    setState('result');
+
+  } catch (err) {
+    setState('empty');
+    showToast('Error: ' + err.message);
+    console.error(err);
+  } finally {
+    document.getElementById('summarizeBtn').disabled = false;
+  }
+}
+
+// ── Fetch transcript ───────────────────────────────────────────────────────────
+// Uses a free public CORS proxy to the YouTube transcript API
+async function fetchTranscript(videoId) {
+  // Use youtubetranscript.com which provides a simple API
+  const proxies = [
+    `https://api.kome.ai/api/tools/youtube-transcripts?video_id=${videoId}&format=text`,
+    `https://youtubetranscript.com/?server_vid2=${videoId}`
+  ];
+
+  // Primary: use a fetch to get raw transcript data
+  // We use a CORS-friendly approach via a public transcript endpoint
+  const res = await fetch(
+    `https://api.kome.ai/api/tools/youtube-transcripts?video_id=${videoId}&format=text`,
+    { headers: { 'Content-Type': 'application/json' } }
+  );
+
+  if (res.ok) {
+    const data = await res.json();
+    if (data && data.transcript) {
+      return data.transcript;
+    }
+  }
+
+  // Fallback: use yt-dlp style approach via a public subtitle fetcher
+  const res2 = await fetch(
+    `https://yt-transcript-api.vercel.app/api/transcript?videoId=${videoId}`
+  );
+  if (res2.ok) {
+    const data2 = await res2.json();
+    if (Array.isArray(data2)) {
+      return data2.map(d => d.text || d.content || '').join(' ');
+    }
+    if (data2.transcript) return data2.transcript;
+  }
+
+  // Final fallback: ask Claude to describe what it knows about the video
+  // (works for popular videos where Claude has training knowledge)
+  console.warn('Could not fetch live transcript, using Claude knowledge fallback');
+  return `VIDEO_ID:${videoId} — No live transcript available. Generate summary based on any knowledge of this video or indicate that the transcript could not be retrieved.`;
+}
+
+// ── Call Claude API ────────────────────────────────────────────────────────────
+async function generateSummary(transcript, tone) {
+  const toneInstructions = {
+    balanced:  'Clear and accessible. Mix of insight and readability.',
+    detailed:  'Thorough and comprehensive. Include nuances and sub-points.',
+    casual:    'Conversational and engaging, like explaining to a friend.',
+    academic:  'Precise and analytical with structured argumentation.',
+  };
+
+  const prompt = `You are summarizing a YouTube video transcript into a structured JSON summary.
+
+Transcript:
+${transcript.slice(0, 12000)}
+
+Writing tone: ${toneInstructions[tone] || toneInstructions.balanced}
+
+Return ONLY valid JSON (no markdown, no backticks) in this exact structure:
+{
+  "tldr": "2-3 sentence hook capturing the core message and why it matters",
+  "highlights": [
+    {
+      "title": "Short compelling point title (max 10 words)",
+      "detail": "2-3 sentences expanding on this point with specifics"
+    }
+  ],
+  "article": "Full markdown article with ## headings, paragraphs, and bullet lists. 400-600 words.",
+  "topics": ["topic1", "topic2", "topic3", "topic4", "topic5"]
+}
+
+Rules:
+- highlights: exactly 5-7 items, each genuinely distinct
+- topics: 4-6 short topic tags (2-3 words max each)
+- article: must have Introduction, 2-3 themed sections, Key Takeaways, Conclusion
+- Be specific — no vague generalities`;
+
+  const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${API_KEY}`
+    },
+    body: JSON.stringify({
+      model: 'llama-3.3-70b-versatile',
+      max_tokens: 2048,
+      temperature: 0.4,
+      messages: [{ role: 'user', content: prompt }]
+    })
+  });
+
+  if (!response.ok) {
+    const err = await response.json().catch(() => ({}));
+    throw new Error(err.error?.message || `API error ${response.status}`);
+  }
+
+  const data = await response.json();
+  const text = data.choices?.[0]?.message?.content || '';
+
+  // Strip any accidental markdown fences
+  const clean = text.replace(/^```json\s*/i, '').replace(/^```\s*/i, '').replace(/\s*```$/i, '').trim();
+
+  try {
+    return JSON.parse(clean);
+  } catch {
+    throw new Error('Could not parse AI response. Try again.');
+  }
+}
+
+// ── Render result ──────────────────────────────────────────────────────────────
+function renderResult(result) {
+  // TLDR
+  document.getElementById('tldrText').textContent = result.tldr || '';
+
+  // Highlights
+  const list = document.getElementById('highlightsList');
+  list.innerHTML = '';
+  (result.highlights || []).forEach((h, i) => {
+    const item = document.createElement('div');
+    item.className = 'highlight-item';
+    item.innerHTML = `
+      <div class="highlight-dot"></div>
+      <div class="highlight-content">
+        <div class="highlight-title">${escHtml(h.title)}</div>
+        <div class="highlight-detail">${escHtml(h.detail)}</div>
+      </div>
+      <div class="highlight-expand">›</div>
+    `;
+    item.addEventListener('click', () => item.classList.toggle('expanded'));
+    list.appendChild(item);
+  });
+
+  // Article
+  const articleEl = document.getElementById('articleText');
+  articleEl.innerHTML = markdownToHtml(result.article || '');
+
+  // Topics
+  const tagsEl = document.getElementById('tagsRow');
+  tagsEl.innerHTML = '';
+  (result.topics || []).forEach(t => {
+    const tag = document.createElement('span');
+    tag.className = 'tag topic';
+    tag.textContent = t;
+    tagsEl.appendChild(tag);
+  });
+}
+
+// ── Minimal markdown → HTML ────────────────────────────────────────────────────
+function markdownToHtml(md) {
+  return md
+    .replace(/^## (.+)$/gm, '<h2>$1</h2>')
+    .replace(/^### (.+)$/gm, '<h3>$1</h3>')
+    .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+    .replace(/\*(.+?)\*/g, '<em>$1</em>')
+    .replace(/^- (.+)$/gm, '<li>$1</li>')
+    .replace(/(<li>.*<\/li>\n?)+/g, m => `<ul>${m}</ul>`)
+    .replace(/\n\n/g, '</p><p>')
+    .replace(/^(?!<[hul])(.+)$/gm, (m, p) => p ? `<p>${p}</p>` : '')
+    .replace(/<p><\/p>/g, '');
+}
+
+function escHtml(str) {
+  return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+// ── Export ─────────────────────────────────────────────────────────────────────
+function exportMarkdown() {
+  if (!currentResult) return;
+  const md = buildMarkdown(currentResult);
+  downloadFile(md, 'summary.md', 'text/markdown');
+}
+
+function exportHTML() {
+  if (!currentResult) return;
+  const html = `<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Video Summary</title>
+<style>body{font-family:Georgia,serif;max-width:760px;margin:60px auto;padding:0 24px;line-height:1.75;color:#1a1a1a;}
+h1{font-size:2em;}h2{font-size:1.4em;border-bottom:1px solid #ddd;padding-bottom:6px;margin-top:2em;}
+ul{padding-left:1.4em;}li{margin:6px 0;}</style></head>
+<body>${markdownToHtml(buildMarkdown(currentResult))}</body></html>`;
+  downloadFile(html, 'summary.html', 'text/html');
+}
+
+function buildMarkdown(r) {
+  const highlights = (r.highlights || []).map(h => `- **${h.title}**\n  ${h.detail}`).join('\n\n');
+  return `# Video Summary\n\n## TL;DR\n${r.tldr}\n\n## Key Highlights\n${highlights}\n\n${r.article}\n\n## Topics\n${(r.topics||[]).map(t=>`\`${t}\``).join(', ')}`;
+}
+
+function copyAll() {
+  if (!currentResult) return;
+  navigator.clipboard.writeText(buildMarkdown(currentResult))
+    .then(() => showToast('Copied to clipboard'))
+    .catch(() => showToast('Copy failed'));
+}
+
+function downloadFile(content, filename, mime) {
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([content], { type: mime }));
+  a.download = filename;
+  a.click();
+  showToast(`Downloaded ${filename}`);
+}
+
+// ── Toast ──────────────────────────────────────────────────────────────────────
+let toastTimer;
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.remove('show'), 2800);
+}
+
+// ── Enter key on input ─────────────────────────────────────────────────────────
+document.getElementById('urlInput').addEventListener('keydown', e => {
+  if (e.key === 'Enter') startSummary();
+});
+</script>
+</body>
+</html>
