@@ -1,0 +1,8 @@
+model:
+  name: gemini-1.5-flash
+  temperature: 0.4
+  max_output_tokens: 2048
+
+chunking:
+  chunk_size: 600
+  overlap: 50
