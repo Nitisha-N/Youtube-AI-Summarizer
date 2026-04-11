@@ -7,20 +7,20 @@ import streamlit as st
 from pipeline import run_pipeline
 from src.pdf import make_pdf
 
-# Page config must be the first Streamlit call
+# Page configiguration
 st.set_page_config(
     page_title="YouTube to Article",
     layout="wide",
     initial_sidebar_state="collapsed",
 )
 
-# Load API key from .streamlit/secrets.toml
+# Load API key
 try:
     API_KEY = st.secrets["GEMINI_API_KEY"]
 except (KeyError, FileNotFoundError):
     API_KEY = None
 
-# Minimal CSS -- only colors and font, no structural overrides that fight Streamlit
+# Minimal CSS
 st.markdown(
     """
     <style>
@@ -155,7 +155,7 @@ if "result" in st.session_state:
 
     st.divider()
 
-    # Article and exports side by side
+    # Article 
     col_article, col_exports = st.columns([3, 1])
 
     with col_article:
